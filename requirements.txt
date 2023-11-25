@@ -1,0 +1,11 @@
+box2d-py==2.3.5
+cloudpickle==3.0.0
+Farama-Notifications==0.0.4
+gym-notices==0.0.8
+gymnasium==0.29.1
+importlib-metadata==6.8.0
+numpy==1.24.4
+pygame==2.5.2
+swig==4.1.1.post0
+typing-extensions==4.8.0
+zipp==3.17.0
