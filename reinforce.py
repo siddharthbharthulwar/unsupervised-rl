@@ -8,29 +8,15 @@ from torch import optim
 import torch.nn.functional as F
 from torch import distributions as pyd
 import matplotlib.pyplot as plt
-
-
-class PolicyNetwork(nn.Module):
-    
-    def __init__(self, state_space, action_space):
-
-        super(PolicyNetwork, self).__init__()
-        self.fc1 = nn.Linear(state_space, 8)
-        self.fc2 = nn.Linear(8, action_space)
-
-    def forward(self, x):
-
-        x = F.relu(self.fc1(x))
-        x = self.fc2(x)
-        return F.softmax(x, dim=-1)
+from networks import PolicyNetwork
 
 #HYPERPARAMS:
 
-NUM_ITERATIONS = 100
+NUM_ITERATIONS = 3000
 DISCOUNT_FACTOR = 0.99
 ACTION_SPACE = 4
 STATE_SPACE = 8
-LEARNING_RATE = 0.01
+LEARNING_RATE = 0.02
 
 
 policyNetwork = PolicyNetwork(STATE_SPACE, ACTION_SPACE)
@@ -57,7 +43,8 @@ def compute_loss(states, actions, G, policy):
 
 for it in range(NUM_ITERATIONS):
 
-    print("Iteration: ", it)
+    if (it % 100 == 0):
+        print("Iteration: ", it)
     obs, _ = env.reset()
     terminated = False
     truncated = False
@@ -87,7 +74,27 @@ for it in range(NUM_ITERATIONS):
 env.close()
 
 plt.plot(losses)
+plt.savefig("losses.png")
 plt.show()
 
+#save the policy
+
+torch.save(policyNetwork.state_dict(), "policyNetwork.pt")
 
 
+
+# #deploy the policy
+
+# env = gym.make("LunarLander-v2", render_mode="human")
+# for it in range(5):
+#     obs, _ = env.reset()
+#     terminated = False
+#     truncated = False
+#     while not terminated and not truncated:
+
+#         env.render()
+#         action_logits = policyNetwork.forward(torch.from_numpy(obs))
+#         categorical = pyd.Categorical(action_logits)
+#         action = categorical.sample()
+#         next_obs, reward, terminated, truncated, info = env.step(action.numpy())
+#         obs = next_obs
