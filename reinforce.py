@@ -15,7 +15,7 @@ env = gym.make("BipedalWalker-v3")
 
 NUM_ITERATIONS = 3000
 DISCOUNT_FACTOR = 0.99
-LEARNING_RATE = 0.02
+LEARNING_RATE = 0.002
 
 if isinstance(env.action_space, gym.spaces.box.Box):
     ACTION_SPACE = env.action_space.shape[0]
@@ -100,7 +100,7 @@ for it in range(NUM_ITERATIONS):
 env.close()
 
 plt.plot(losses)
-plt.savefig(f"losses/{env.unwrapped.spec.id}Losses.png")
+plt.savefig(f"{env.unwrapped.spec.id}-Losses.png")
 # plt.show()
 
 #save the policy
