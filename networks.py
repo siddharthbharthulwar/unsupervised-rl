@@ -25,3 +25,20 @@ class PolicyNetwork(nn.Module):
         x = F.relu(self.fc1(x))
         x = self.fc2(x)
         return F.softmax(x, dim=-1)
+
+class PolicyNetworkContinuous(PolicyNetwork):
+
+    def __init__(self, state_space, action_space, param_file=None):
+        super(PolicyNetworkContinuous, self).__init__(state_space, action_space, param_file)  # Pass arguments to the parent constructor
+
+        self.fc2 = nn.Linear(8, 2 * action_space)  # Double the output size for mean and std
+
+    def forward(self, x):
+        x = F.relu(self.fc1(x))
+        x = self.fc2(x)
+        
+        # Split the output into mean and standard deviation
+        mean, log_std = torch.chunk(x, 2, dim=-1)
+        std = torch.exp(log_std)  # Ensure std is positive
+
+        return mean, std
