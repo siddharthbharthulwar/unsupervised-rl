@@ -11,18 +11,22 @@ from torch import distributions as pyd
 NUM_ITERATIONS = 5 #number of episodes to show to human
 PARAMS_PATH = 'policyNetworks/bipedalWalkerPolicyNetwork.pt'
 
+state_dict = torch.load(PARAMS_PATH)
+
+
 env = gym.make('BipedalWalker-v3', render_mode='human')
 
-ACTION_SPACE = 4
-# env.action_space.shape[0] if isinstance(env.action_space, gym.spaces.box.Box) else env.action_space.n
-STATE_SPACE = 24
-# env.observation_space.shape[0] if isinstance(env.observation_space, gym.spaces.box.Box) else env.observation_space.n
+ACTION_SPACE = env.action_space.shape[0] if isinstance(env.action_space, gym.spaces.box.Box) else env.action_space.n
+STATE_SPACE = env.observation_space.shape[0] if isinstance(env.observation_space, gym.spaces.box.Box) else env.observation_space.n
 
 env.reset()
 
+print(isinstance(env.action_space, gym.spaces.box.Box))
 if isinstance(env.action_space, gym.spaces.box.Box):
 
-    policyNetwork = PolicyNetworkContinuous(STATE_SPACE, ACTION_SPACE, param_file=PARAMS_PATH)
+    policyNetwork = PolicyNetworkContinuous(STATE_SPACE, ACTION_SPACE)
+    policyNetwork.load_state_dict(state_dict)
+
     for it in range(5):
         obs, _ = env.reset()
         terminated = False

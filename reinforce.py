@@ -13,7 +13,7 @@ from networks import PolicyNetwork, PolicyNetworkContinuous
 #HYPERPARAMS:
 env = gym.make("BipedalWalker-v3")
 
-NUM_ITERATIONS = 3000
+NUM_ITERATIONS = 50
 DISCOUNT_FACTOR = 0.99
 LEARNING_RATE = 0.02
 
@@ -104,6 +104,9 @@ plt.savefig("losses.png")
 # plt.show()
 
 #save the policy
+
+print(policyNetwork.state_dict())
+print(policyNetwork.__class__.__name__)
 
 torch.save(policyNetwork.state_dict(), "policyNetworks/bipedalWalkerPolicyNetwork.pt")
 
