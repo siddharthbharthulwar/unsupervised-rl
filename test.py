@@ -9,12 +9,12 @@ from torch import distributions as pyd
 
 #HYPERPARAMS:
 NUM_ITERATIONS = 5 #number of episodes to show to human
-PARAMS_PATH = 'policyNetworks/bipedalWalkerPolicyNetwork.pt'
+env = gym.make('BipedalWalker-v3', render_mode='human')
+PARAMS_PATH = f'policyNetworks/{env.unwrapped.spec.id}PolicyNetwork.pt'
 
 state_dict = torch.load(PARAMS_PATH)
 
 
-env = gym.make('BipedalWalker-v3', render_mode='human')
 
 ACTION_SPACE = env.action_space.shape[0] if isinstance(env.action_space, gym.spaces.box.Box) else env.action_space.n
 STATE_SPACE = env.observation_space.shape[0] if isinstance(env.observation_space, gym.spaces.box.Box) else env.observation_space.n

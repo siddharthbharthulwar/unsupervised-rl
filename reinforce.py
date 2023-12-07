@@ -13,7 +13,7 @@ from networks import PolicyNetwork, PolicyNetworkContinuous
 #HYPERPARAMS:
 env = gym.make("BipedalWalker-v3")
 
-NUM_ITERATIONS = 50
+NUM_ITERATIONS = 3000
 DISCOUNT_FACTOR = 0.99
 LEARNING_RATE = 0.02
 
@@ -100,7 +100,7 @@ for it in range(NUM_ITERATIONS):
 env.close()
 
 plt.plot(losses)
-plt.savefig("losses.png")
+plt.savefig(f"losses/{env.unwrapped.spec.id}Losses.png")
 # plt.show()
 
 #save the policy
@@ -108,7 +108,7 @@ plt.savefig("losses.png")
 print(policyNetwork.state_dict())
 print(policyNetwork.__class__.__name__)
 
-torch.save(policyNetwork.state_dict(), "policyNetworks/bipedalWalkerPolicyNetwork.pt")
+torch.save(policyNetwork.state_dict(), f"policyNetworks/{env.unwrapped.spec.id}PolicyNetwork.pt")
 
 # #deploy the policy
 
