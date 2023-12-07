@@ -1,128 +1,103 @@
-import gymnasium as gym
+import gym
 import numpy as np
-import math
-import random as random
-from torch import nn
 import torch
-from torch import optim
-import torch.nn.functional as F
-from torch import distributions as pyd
-import matplotlib.pyplot as plt
-from networks import PolicyNetwork, PolicyNetworkContinuous
+import torch.nn as nn
+import torch.optim as optim
+from torch.distributions import Categorical
+from networks import PolicyNetwork  # Assume you have a PolicyNetwork implementation
 
-#HYPERPARAMS:
-env = gym.make("BipedalWalker-v3")
-
+# Hyperparameters
 NUM_ITERATIONS = 3000
-DISCOUNT_FACTOR = 0.99
-LEARNING_RATE = 0.02
+GAMMA = 0.99
+LR = 0.002
+EPSILON = 0.2
 KL_TARGET = 0.01
 
-if isinstance(env.action_space, gym.spaces.box.Box):
-    ACTION_SPACE = env.action_space.shape[0]
-    STATE_SPACE = env.observation_space.shape[0]
+# Create environment
+env = gym.make("CartPole-v1")
+ACTION_SPACE = env.action_space.n
+STATE_SPACE = env.observation_space.n
 
-    policyNetwork = PolicyNetworkContinuous(STATE_SPACE, ACTION_SPACE)
+# Policy network
+policy_network = PolicyNetwork(STATE_SPACE, ACTION_SPACE)
+optimizer = optim.SGD(policy_network.parameters(), lr=LR)
 
-elif isinstance(env.action_space, gym.spaces.discrete.Discrete):
-    ACTION_SPACE = env.action_space.n
-    STATE_SPACE = env.observation_space.n
-    policyNetwork = PolicyNetwork(STATE_SPACE, ACTION_SPACE)
+# Function to compute KL divergence
+def kl_divergence(old_policy, new_policy, states):
+    old_logits = old_policy(states)
+    new_logits = new_policy(states)
 
-optimizer = optim.Adam(policyNetwork.parameters(), lr=LEARNING_RATE)
-losses = []
+    old_dist = Categorical(logits=old_logits)
+    new_dist = Categorical(logits=new_logits)
 
-def compute_returns(rewards, gamma=DISCOUNT_FACTOR):
-    G = []
-    returns = 0
-    for reward in reversed(rewards):
-        returns = reward + gamma * returns
-        G.insert(0, returns)
-    return G
+    return torch.distributions.kl.kl_divergence(old_dist, new_dist)
 
-def compute_loss(states, actions, G, policy):
+# PPO loss function
+def ppo_loss(old_policy, new_policy, states, actions, advantages):
+    new_logits = new_policy(states)
+    new_dist = Categorical(logits=new_logits)
+    new_probs = new_dist.probs[range(len(actions)), actions]
 
-    if policy.__class__.__name__ == "PolicyNetworkContinuous":
-        
-        loss = 0
-        for state, action, return_ in zip(states, actions, G):
-            mean, std = policy(torch.from_numpy(state))
-            normal_dist = pyd.Normal(mean, std)
-            log_prob = normal_dist.log_prob(action.clone().detach().requires_grad_(True))
-            loss += -log_prob * return_  # negative because we want to maximize the return
-        
-        loss = torch.mean(loss)
-        return loss
+    old_logits = old_policy(states)
+    old_dist = Categorical(logits=old_logits)
+    old_probs = old_dist.probs[range(len(actions)), actions]
 
-    else:
+    ratio = new_probs / old_probs
+    surr1 = ratio * advantages
+    surr2 = torch.clamp(ratio, 1 - EPSILON, 1 + EPSILON) * advantages
 
-        loss = 0
-        for state, action, return_ in zip(states, actions, G):
-            action_logits = policy(torch.from_numpy(state))
-            log_prob = torch.log(action_logits[action])
-            loss += -log_prob * return_ #negative because we want to maximize the return
-        return loss
+    return -torch.min(surr1, surr2).mean()
 
-for it in range(NUM_ITERATIONS):
+# Training loop
+for iteration in range(NUM_ITERATIONS):
+    # Collect data
+    states, actions, rewards, next_states, dones = [], [], [], [], []
+    state = env.reset()
 
-    if (it % 100 == 0):
-        print("Iteration: ", it)
-    obs, _ = env.reset()
-    terminated = False
-    truncated = False
-    states, actions, rewards = [], [] ,[]
+    while True:
+        action_probs = policy_network(torch.tensor(state, dtype=torch.float32))
+        action_dist = Categorical(probs=action_probs)
+        action = action_dist.sample().item()
 
-    #individual episode
-    while not terminated and not truncated:
-        
-        if policyNetwork.__class__.__name__ == "PolicyNetworkContinuous":
-            action_means, action_stds = policyNetwork.forward(torch.from_numpy(obs).float())
-            normal = pyd.Normal(action_means, action_stds)
-            action = normal.sample()
-        else:
-            action_logits = policyNetwork.forward(torch.from_numpy(obs))
-            categorical = pyd.Categorical(action_logits)
-            action = categorical.sample()
-        # action = np.random.choice(len(action_logits), p=action_logits)
-        next_obs, reward, terminated, truncated, info = env.step(action.numpy())
+        next_state, reward, done, _ = env.step(action)
 
-        states.append(obs)
+        states.append(state)
         actions.append(action)
         rewards.append(reward)
-        obs = next_obs
+        next_states.append(next_state)
+        dones.append(done)
 
-    optimizer.zero_grad()
-    G = compute_returns(rewards)
-    loss = compute_loss(states, actions, G, policyNetwork)
-    loss.backward()
-    optimizer.step()
-    losses.append(loss.item())
+        state = next_state
+
+        if done:
+            break
+
+    # Compute advantages
+    returns = []
+    advantage = 0
+    for reward, done in zip(reversed(rewards), reversed(dones)):
+        advantage = reward + GAMMA * (1 - int(done)) * advantage
+        returns.insert(0, advantage)
+
+    # Convert to PyTorch tensors
+    states = torch.tensor(states, dtype=torch.float32)
+    actions = torch.tensor(actions, dtype=torch.long)
+    advantages = torch.tensor(returns, dtype=torch.float32)
+
+    # Policy update
+    old_policy = PolicyNetwork(STATE_SPACE, ACTION_SPACE)
+    old_policy.load_state_dict(policy_network.state_dict())
+
+    # Optimize policy using PPO loss with KL constraint
+    for _ in range(10):  # You may need to adjust the number of optimization steps
+        optimizer.zero_grad()
+        loss = ppo_loss(old_policy, policy_network, states, actions, advantages)
+        kl = kl_divergence(old_policy, policy_network, states).mean()
+        loss = loss + KL_TARGET * kl  # Add KL penalty to the loss
+        loss.backward()
+        optimizer.step()
+
+    if iteration % 100 == 0:
+        print(f"Iteration {iteration}, Loss: {loss.item()}, KL: {kl.item()}")
 
 env.close()
-
-plt.plot(losses)
-plt.savefig("losses.png")
-# plt.show()
-
-#save the policy
-
-print(policyNetwork.state_dict())
-print(policyNetwork.__class__.__name__)
-
-torch.save(policyNetwork.state_dict(), "policyNetworks/bipedalWalkerPolicyNetwork.pt")
-
-# #deploy the policy
-
-# env = gym.make("LunarLander-v2", render_mode="human")
-# for it in range(5):
-#     obs, _ = env.reset()
-#     terminated = False
-#     truncated = False
-#     while not terminated and not truncated:
-
-#         env.render()
-#         action_logits = policyNetwork.forward(torch.from_numpy(obs))
-#         categorical = pyd.Categorical(action_logits)
-#         action = categorical.sample()
-#         next_obs, reward, terminated, truncated, info = env.step(action.numpy())
-#         obs = next_obs
