@@ -14,7 +14,7 @@ EPSILON = 0.2
 KL_TARGET = 0.01
 
 # Create environment
-env = gym.make("CartPole-v1")
+env = gym.make("Humanoid-v4")
 ACTION_SPACE = env.action_space.n
 STATE_SPACE = env.observation_space.n
 

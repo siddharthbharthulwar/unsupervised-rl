@@ -11,11 +11,12 @@ import matplotlib.pyplot as plt
 from networks import PolicyNetwork, PolicyNetworkContinuous
 
 #HYPERPARAMS:
-env = gym.make("BipedalWalker-v3")
+	
+env = gym.make("HalfCheetah-v4")
 
 NUM_ITERATIONS = 3000
 DISCOUNT_FACTOR = 0.99
-LEARNING_RATE = 0.002
+LEARNING_RATE = 0.02
 
 if isinstance(env.action_space, gym.spaces.box.Box):
     ACTION_SPACE = env.action_space.shape[0]

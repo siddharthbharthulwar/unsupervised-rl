@@ -9,36 +9,45 @@ import torch.nn.functional as F
 from torch import distributions as pyd
 import matplotlib.pyplot as plt
 
-class PolicyNetwork(nn.Module):
-    
-    def __init__(self, state_space, action_space, param_file=None):
+"""
+Inspired by Gymnasium implementation of policy network.
+Policy network for gym environments with continuous action spaces. 
+Utilize network in policy gradient methods.
+"""
 
-        super(PolicyNetwork, self).__init__()
-        self.fc1 = nn.Linear(state_space, 8)
-        self.fc2 = nn.Linear(8, action_space)
+class PolicyNet(nn.Module):
+    def __init__(self, obs_space_D: int, action_space_D: int):
+        """
+        This neural network outputs the parameters of 
+        Gaussian distributions from which actions are sampled.
+        """
 
-        if param_file is not None:
-            self.load_state_dict(torch.load(param_file))
+        super(PolicyNet, self).__init__()
 
-    def forward(self, x):
+        hidden_space1 = 16
+        hidden_space2 = 32
 
-        x = F.relu(self.fc1(x))
-        x = self.fc2(x)
-        return F.softmax(x, dim=-1)
+        self.net = nn.Sequential(
+            nn.Linear(obs_space_D, hidden_space1),
+            nn.Tanh(),
+            nn.Linear(action_space_D, hidden_space2),
+            nn.Tanh(),
+        )
 
-class PolicyNetworkContinuous(PolicyNetwork):
+        # mean net
+        self.mean_net = nn.Linear(hidden_space2, action_space_D)
 
-    def __init__(self, state_space, action_space, param_file=None):
-        super(PolicyNetworkContinuous, self).__init__(state_space, action_space, param_file)  # Pass arguments to the parent constructor
+        # std net
+        self.std_net = nn.Linear(hidden_space2, action_space_D)
 
-        self.fc2 = nn.Linear(8, 2 * action_space)  # Double the output size for mean and std
+    def forward(self, x: torch.Tensor) -> tuple[torch.Tensor, torch.Tensor]:
+        """
+        Forward pass of the network.
+        """
 
-    def forward(self, x):
-        x = F.relu(self.fc1(x))
-        x = self.fc2(x)
-        
-        # Split the output into mean and standard deviation
-        mean, log_std = torch.chunk(x, 2, dim=-1)
-        std = torch.exp(log_std)  # Ensure std is positive
+        features = self.net(x.float())
 
-        return mean, std
+        means = self.mean_net(features)
+        stds = torch.log(1 + torch.exp(self.std_net(features)))
+
+        return means, stds
