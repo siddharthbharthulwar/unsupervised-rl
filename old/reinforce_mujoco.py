@@ -2,7 +2,7 @@ import gymnasium as gym
 import torch
 import random
 import numpy as np
-from pgs import REINFORCE, PPO
+from pgs import REINFORCE
 import pandas as pd
 import seaborn as sns
 import matplotlib.pyplot as plt
@@ -56,3 +56,6 @@ sns.lineplot(x="episodes", y="reward", data=df1).set(
     title="REINFORCE for InvertedPendulum-v4"
 )
 plt.show()
+
+plt.savefig(f"{env.unwrapped.spec.id}-Rewards.png")
+torch.save(pg.state_dict(), f"policyNetworks/{env.unwrapped.spec.id}PolicyNetwork.pt")

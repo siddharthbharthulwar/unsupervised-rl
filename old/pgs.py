@@ -42,7 +42,6 @@ class REINFORCE:
         # Obtain mean, std from net to construct a Gaussian. Sample.
 
         mean, std = self.net(torch.from_numpy(state))
-        print(mean, std)
         normal_dist = pyd.Normal(mean + self.eps, std + self.eps)
         action = normal_dist.sample()
         log_prob = normal_dist.log_prob(action)
@@ -66,7 +65,7 @@ class REINFORCE:
 
         loss = 0
         
-        for log_prob, return_val in zip(self.probs, returns):
+        for log_prob, return_val in zip(self.log_probs, returns):
             loss -= log_prob.mean() * return_val
 
         # Backpropagate and update weights
@@ -75,5 +74,5 @@ class REINFORCE:
         self.optimizer.step()
 
         # Empty / zero out all episode-centric/related variables
-        self.probs = []
+        self.log_probs = []
         self.rewards = []

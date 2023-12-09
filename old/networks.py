@@ -30,7 +30,7 @@ class PolicyNet(nn.Module):
         self.net = nn.Sequential(
             nn.Linear(obs_space_D, hidden_space1),
             nn.Tanh(),
-            nn.Linear(action_space_D, hidden_space2),
+            nn.Linear(hidden_space1, hidden_space2),
             nn.Tanh(),
         )
 
