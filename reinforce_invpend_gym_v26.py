@@ -215,6 +215,32 @@ class REINFORCE:
         self.probs = []
         self.rewards = []
 
+    def save_state_dict(self, path):
+        torch.save(self.net.state_dict(), path)
+
+    # Not sure if this is useful?
+    # def render_state_dict(self, wrapped_env, path):
+    #     self.net.load_state_dict(torch.load(path))
+
+    #     for _ in range(5):
+    #         obs, info = wrapped_env.reset(seed=seed)
+
+    #         done = False
+    #         while not done:
+    #             wrapped_env.render()
+
+    #             action = agent.sample_action(obs)
+
+    #             # Step return type - `tuple[ObsType, SupportsFloat, bool, bool, dict[str, Any]]`
+    #             # These represent the next observation, the reward from the step,
+    #             # if the episode is terminated, if the episode is truncated and
+    #             # additional info from the step
+    #             obs, reward, terminated, truncated, info = wrapped_env.step(action)
+    #             # End the episode when either truncated or terminated is true
+    #             #  - truncated: The episode duration reaches max number of timesteps
+    #             #  - terminated: Any of the state space values is no longer finite.
+    #             done = terminated or truncated
+
 
 # %%
 # Now lets train the policy using REINFORCE to master the task of Inverted Pendulum.
@@ -236,9 +262,8 @@ class REINFORCE:
 # Note: Deep RL is fairly brittle concerning random seed in a lot of common use cases (https://spinningup.openai.com/en/latest/spinningup/spinningup.html).
 # Hence it is important to test out various seeds, which we will be doing.
 
-
 # Create and wrap the environment
-env = gym.make("InvertedPendulum-v4")
+env = gym.make("InvertedPendulum-v4", render_mode="human")
 wrapped_env = gym.wrappers.RecordEpisodeStatistics(env, 50)  # Records episode-reward
 
 total_num_episodes = int(5e3)  # Total number of episodes
@@ -286,6 +311,7 @@ for seed in [1, 2, 3, 5, 8]:  # Fibonacci seeds
             print("Episode:", episode, "Average Reward:", avg_reward)
 
     rewards_over_seeds.append(reward_over_episodes)
+    agent.save_state_dict(f"state_dicts/{env.unwrapped.spec.id}net{seed}.pt")   
 
 
 # %%
@@ -300,7 +326,7 @@ sns.set(style="darkgrid", context="talk", palette="rainbow")
 sns.lineplot(x="episodes", y="reward", data=df1).set(
     title="REINFORCE for InvertedPendulum-v4"
 )
-plt.show()
+plt.savefig(f"rewards/{env.unwrapped.spec.id}-rewards.png")
 
 # %%
 # .. image:: /_static/img/tutorials/reinforce_invpend_gym_v26_fig4.png
