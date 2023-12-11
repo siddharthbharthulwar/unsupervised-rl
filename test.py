@@ -15,7 +15,7 @@ from reinforce import REINFORCE
 
 ENV = "Pusher-v4"
 SEED = 2
-USE_MASTER = True
+USE_MASTER = False
 SEEDS = [1, 2, 3, 5, 8]
 if (USE_MASTER):
     PARAMS_PATH = "state_dicts/" + ENV + "netMASTER.pt"

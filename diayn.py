@@ -12,6 +12,8 @@ ENV = "Pusher-v4"
 
 #hyperparameters: total # of skills, 
 
+NUM_SKILLS = 6
+
 #need to be able to sample from z, such that z ~ p(z) where p(z) is uniform
 #one-hot encode z
 
@@ -40,3 +42,4 @@ ENV = "Pusher-v4"
 - 
 
 '''
+
