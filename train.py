@@ -12,9 +12,9 @@ from reinforce import REINFORCE
 import gymnasium as gym
 
 """Hyperparameters of training procedure"""
-ENV = "InvertedDoublePendulum-v4" #name of gymnasium environment
-SAVE_BEST_SEED = True #whether we save the model with the best reward across seeds (true), or save every seed's model (false)
-TOTAL_NUM_EPISODES = int(5e4)
+ENV = "Pusher-v4" #name of gymnasium environment
+SAVE_BEST_SEED = False #whether we save the model with the best reward across seeds (true), or save every seed's model (false)
+TOTAL_NUM_EPISODES = int(300000)
 SEEDS = [1, 2, 3, 5, 8]
 
 # Create and wrap the environment
@@ -45,10 +45,7 @@ for seed in SEEDS:  # Fibonacci seeds
         # gymnasium v26 requires users to set seed while resetting the environment
         obs, info = wrapped_env.reset(seed=seed)
 
-        # if (episode % 100 == 0):
-        #     # print(episode, " / ", total_num_episodes)
-        #     sys.stdout.write("\rEpisode: %d%%" % episode)
-        #     sys.stdout.flush()
+        print(episode)
 
         done = False
         while not done:

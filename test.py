@@ -11,11 +11,16 @@ from torch.distributions.normal import Normal
 import gymnasium as gym
 from reinforce import REINFORCE
 
+"""Hyperparameters of testing procedure"""
 
-ENV = "InvertedDoublePendulum-v4"
-SEED = 1
+ENV = "Pusher-v4"
+SEED = 2
 USE_MASTER = True
-PARAMS_PATH = "state_dicts/" + ENV + "net" +"MASTER.pt"
+SEEDS = [1, 2, 3, 5, 8]
+if (USE_MASTER):
+    PARAMS_PATH = "state_dicts/" + ENV + "netMASTER.pt"
+else:
+    PARAMS_PATH = "state_dicts/" + ENV + "net" + str(SEED) + ".pt"
 
 env = gym.make(ENV, render_mode="human")
 wrapped_env = gym.wrappers.RecordEpisodeStatistics(env, 50)
@@ -24,7 +29,6 @@ action_space_dims = env.action_space.shape[0]
 agent = REINFORCE(obs_space_dims, action_space_dims)
 agent.net.load_state_dict(torch.load(PARAMS_PATH))
 
-SEEDS = [1, 2, 3, 5, 8]
 
 for seed in SEEDS:
 
