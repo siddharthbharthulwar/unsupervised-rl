@@ -5,41 +5,60 @@ import seaborn as sns
 import torch
 import torch.nn as nn
 from torch.distributions.normal import Normal
+from torch.nn.functional import softmax
+from reinforce import Policy_Network
+
 
 import gymnasium as gym
 
-ENV = "Pusher-v4"
+class Discriminator_Network(nn.Module):
+    '''Discriminator Network'''
 
-#hyperparameters: total # of skills, 
+    def __init__(self, obs_space_dims : int, num_skills : int):
+        """Initializes a neural network that estimates the probability of a skill given a state
+        
+        Args:
+            obs_space_dims: Dimension of the observation space
+            num_skills: Number of skills
+        """
 
-NUM_SKILLS = 6
+        super().__init__()
 
-#need to be able to sample from z, such that z ~ p(z) where p(z) is uniform
-#one-hot encode z
+        #dimensions of each hidden layer
+        hidden_dims = [128, 64, 32]
 
+        #constructing shared net from hidden layer dimensions
+        sequential_input = []
+        prev_space = obs_space_dims
+        for dim in hidden_dims:
+            sequential_input.append(
+                nn.Linear(prev_space, dim)
+            )
+            sequential_input.append(nn.Tanh())
+            prev_space = dim
 
+        self.shared_net = nn.Sequential(*sequential_input)
+        self.output = nn.Linear(hidden_dims[-1], num_skills)
 
+    def forward(self, x : torch.Tensor) -> torch.Tensor:
 
-#process per each training loop:
+        hidden_features = self.shared_net(x.float())
+        output = self.output(hidden_features)
+        return softmax(output, dim=1)
 
-'''
-- sample z from p(z)
-- concatenate one-hot-encoded z with observation vector -> let this be c
-- get action from policy network as policyNetwork(c)
-- if we want to learn p(z):
-    - some complicated logic with discriminator here, todo figure out
-    - turns out that this is an extension, and they actually go over it in the paper
-    - learning p(z) reduces the effective number of skills, but we want to maximize for diversity of skills so leaving it uniform is prolly fine
+class DIAYN:
+    '''DIAYN algorithm'''
 
-- next_ob, reward, terminal, info = env.step(action)
+    def __init__(self, num_skills : int, obs_space_dims : int, action_space_dims : int):
 
-- if terminated or truncated:
-    - reset env, reset policy (what does reset policy mean?)
-    - record max path return (max of current max path return and new path return)
-- else:
-    - state = next_state
-- some fuckery with pool sizes (todo figure out)
-- 
+        self.discriminator = Discriminator_Network(obs_space_dims, num_skills) #discriminator state -> skill
+        self.policy = Policy_Network(obs_space_dims + num_skills, action_space_dims) #policy concatenated state and skill -> action
 
-'''
+        self.policy_optimizer = torch.optim.Adam(self.policy.parameters(), lr=0.01)
+        self.discriminator_optimizer = torch.optim.Adam(self.discriminator.parameters(), lr=0.01)
 
+        self.alpha = 0.1 #empirically found to be good in DIAYN
+    
+    def update(self, states, actions, z):
+
+        return None

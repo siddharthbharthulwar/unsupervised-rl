@@ -10,3 +10,9 @@ https://arxiv.org/pdf/1807.04742.pdf
 
 https://arxiv.org/pdf/1903.03698.pdf
 
+
+TODOs:
+
+- implement DIAYN with reinforce (~ 60% done)
+- make it work first on simple environments (2d grid)
+- extend to mujoco
