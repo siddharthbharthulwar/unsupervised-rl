@@ -44,12 +44,18 @@ class Discriminator_Network(nn.Module):
 
         hidden_features = self.shared_net(x.float())
         output = self.output(hidden_features)
-        return softmax(output, dim=1)
+        return output #don't need to use softmax because CrossEntropyLoss does it for us
 
 class DIAYN:
     '''DIAYN algorithm'''
 
     def __init__(self, num_skills : int, obs_space_dims : int, action_space_dims : int):
+
+        self.num_skills = num_skills
+        self.obs_space_dism = obs_space_dims
+        self.action_space_dims = action_space_dims
+        self.eps = 1e-6  # small number for mathematical stability
+
 
         self.discriminator = Discriminator_Network(obs_space_dims, num_skills) #discriminator state -> skill
         self.policy = Policy_Network(obs_space_dims + num_skills, action_space_dims) #policy concatenated state and skill -> action
@@ -58,7 +64,90 @@ class DIAYN:
         self.discriminator_optimizer = torch.optim.Adam(self.discriminator.parameters(), lr=0.01)
 
         self.alpha = 0.1 #empirically found to be good in DIAYN
-    
-    def update(self, states, actions, z):
+        self.gamma = 0.99 #discount factor
+        self.rewards = [] #intrinsic rewards from discriminator
 
-        return None
+        self.actions = []
+        self.states = []
+        self.z = None
+        self.probs = []
+
+
+
+    def sample_action(self, state : np.ndarray, skill : int) -> float:
+        """Returns an action, conditioned on the policy and observation.
+
+        Args:
+            state: Observation from the environment
+            skill: Skill to condition on
+
+        Returns:
+            action: Action to be performed, or a_t ~ pi_theta (a_t | s_t, z)
+        """
+
+        one_hot = np.zeros(self.num_skills)
+        one_hot[skill] = 1
+
+        print(state, one_hot)
+
+        state = np.concatenate((state, one_hot))
+        state = torch.from_numpy(state).float()
+        action_means, action_stddevs = self.policy(state)
+
+        # create a normal distribution from the predicted
+        #   mean and standard deviation and sample an action
+        distrib = Normal(action_means[0] + self.eps, action_stddevs[0] + self.eps)
+        action = distrib.sample()
+        prob = distrib.log_prob(action)
+
+        action = action.numpy()
+
+        self.probs.append(prob)
+        self.actions.append(action)
+        self.states.append(state)
+        self.z = skill
+
+        return action
+
+    
+    def update(self):
+
+        running_g = 0
+        gs = []
+        discriminator_loss = 0
+        policy_loss = 0
+        #TODO: implement w/ broadcasting instead of one-by-one
+
+
+        #extracting intrinsic reward for each state traversed (also calculating loss for discriminator)
+        for state in self.states[::-1]:
+
+            logits = self.discriminator(state)
+            R = torch.nn.CrossEntropyLoss(logits, torch.tensor([self.z]))
+            R = torch.log(R)
+            discriminator_loss += R
+            running_g = self.gamma * running_g + R
+            gs.insert(0, running_g)
+
+        deltas = torch.tensor(gs)
+
+        #calculating loss for policy network
+        for log_prob, delta in zip(self.probs, deltas):
+            policy_loss += log_prob.mean() * delta * (-1)
+
+        # Update the policy network
+        self.policy_optimizer.zero_grad()
+        policy_loss.backward()
+        self.policy_optimizer.step()
+
+        # Update the discriminator network
+        self.discriminator_optimizer.zero_grad()
+        discriminator_loss.backward()
+        self.discriminator_optimizer.step()
+
+        # Empty / zero out all episode-centric/related variables
+        self.probs = []
+        self.actions = []
+        self.states = []
+
+        return (discriminator_loss, policy_loss)
