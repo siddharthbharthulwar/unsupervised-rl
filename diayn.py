@@ -111,13 +111,13 @@ class DIAYN:
 
 
         #extracting intrinsic reward for each state traversed (also calculating loss for discriminator)
-        for state in self.states[::-1]:
+        for (state, ctrl_cost) in zip(self.states[::-1], self.rewards[::-1]):
 
             logits = self.discriminator(state)
             R = crossentropy(logits.unsqueeze(0), torch.tensor([self.z]))
             R = torch.log(R)
             discriminator_loss += R
-            running_g = self.gamma * running_g + R
+            running_g = self.gamma * running_g + ctrl_cost + R
             gs.insert(0, running_g)
 
         deltas = torch.tensor(gs)

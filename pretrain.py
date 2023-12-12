@@ -8,11 +8,11 @@ from torch.distributions.normal import Normal
 from diayn import DIAYN
 import gymnasium as gym
 
-ENV = "Hopper-v4"
+ENV = "HalfCheetah-v4"
 
 #hyperparameters: total # of skills, 
 
-EPOCHS = 20000
+EPOCHS = 1000
 NUM_SKILLS = 5
 
 def sample_z():
@@ -86,7 +86,7 @@ for epoch in range(EPOCHS):
     while not done:
         action = agent.sample_action(state, z)
         next_state, _, terminated, truncated, info = env.step(action)
-        #note that we don't have access to external reward here
+        agent.rewards.append(-info["reward_ctrl"])
 
         state = next_state
         done = terminated or truncated

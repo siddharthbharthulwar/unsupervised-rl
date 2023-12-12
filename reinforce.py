@@ -185,6 +185,7 @@ class REINFORCE:
 
         # Discounted return (backwards) - [::-1] will return an array in reverse
         for R in self.rewards[::-1]:
+            print(R)
             running_g = R + self.gamma * running_g
             gs.insert(0, running_g)
 
