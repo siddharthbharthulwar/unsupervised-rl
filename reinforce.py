@@ -40,17 +40,10 @@ and returns five variables:
 -  ``info``: This is a dictionary that might contain additional information about the environment.
 """
 
-import random
-
-import matplotlib.pyplot as plt
 import numpy as np
-import pandas as pd
-import seaborn as sns
 import torch
 import torch.nn as nn
 from torch.distributions.normal import Normal
-
-import gymnasium as gym
 
 # Policy Network
 # ~~~~~~~~~~~~~~
@@ -183,7 +176,6 @@ class REINFORCE:
         action = action.numpy()
 
         self.probs.append(prob)
-
         return action
 
     def update(self):

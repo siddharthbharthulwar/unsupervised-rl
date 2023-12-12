@@ -1,15 +1,9 @@
-import matplotlib.pyplot as plt
 import numpy as np
-import pandas as pd
-import seaborn as sns
 import torch
 import torch.nn as nn
 from torch.distributions.normal import Normal
 from torch.nn.functional import softmax
 from reinforce import Policy_Network
-
-
-import gymnasium as gym
 
 class Discriminator_Network(nn.Module):
     '''Discriminator Network'''
@@ -85,10 +79,9 @@ class DIAYN:
             action: Action to be performed, or a_t ~ pi_theta (a_t | s_t, z)
         """
 
+        self.states.append(torch.from_numpy(state))
         one_hot = np.zeros(self.num_skills)
         one_hot[skill] = 1
-
-        print(state, one_hot)
 
         state = np.concatenate((state, one_hot))
         state = torch.from_numpy(state).float()
@@ -96,7 +89,7 @@ class DIAYN:
 
         # create a normal distribution from the predicted
         #   mean and standard deviation and sample an action
-        distrib = Normal(action_means[0] + self.eps, action_stddevs[0] + self.eps)
+        distrib = Normal(action_means + self.eps, action_stddevs + self.eps)
         action = distrib.sample()
         prob = distrib.log_prob(action)
 
@@ -104,11 +97,8 @@ class DIAYN:
 
         self.probs.append(prob)
         self.actions.append(action)
-        self.states.append(state)
         self.z = skill
-
         return action
-
     
     def update(self):
 
@@ -116,6 +106,7 @@ class DIAYN:
         gs = []
         discriminator_loss = 0
         policy_loss = 0
+        crossentropy = nn.CrossEntropyLoss()
         #TODO: implement w/ broadcasting instead of one-by-one
 
 
@@ -123,7 +114,7 @@ class DIAYN:
         for state in self.states[::-1]:
 
             logits = self.discriminator(state)
-            R = torch.nn.CrossEntropyLoss(logits, torch.tensor([self.z]))
+            R = crossentropy(logits.unsqueeze(0), torch.tensor([self.z]))
             R = torch.log(R)
             discriminator_loss += R
             running_g = self.gamma * running_g + R
@@ -151,3 +142,7 @@ class DIAYN:
         self.states = []
 
         return (discriminator_loss, policy_loss)
+    
+    def save_state_dict(self):
+        torch.save(self.policy.state_dict(), "state_dicts/DIAYN_policy.pt")
+        torch.save(self.discriminator.state_dict(), "state_dicts/DIAYN_discriminator.pt")

@@ -8,12 +8,12 @@ from torch.distributions.normal import Normal
 from diayn import DIAYN
 import gymnasium as gym
 
-ENV = "Pusher-v4"
+ENV = "HalfCheetah-v4"
 
 #hyperparameters: total # of skills, 
 
-EPOCHS = 1000
-NUM_SKILLS = 6
+EPOCHS = 12000
+NUM_SKILLS = 14
 
 def sample_z():
     return np.random.randint(NUM_SKILLS)
@@ -95,25 +95,30 @@ policy_losses = []
 
 #basic training loop
 for epoch in range(EPOCHS):
+    if (epoch % 100 == 0):
+        print("Epoch: ", epoch)
     z = sample_z()
     state, info = env.reset()
     #concat state with one-hot action
     done = False
     while not done:
         action = agent.sample_action(state, z)
-        print("ACTION: ", action)
         next_state, _, terminated, truncated, info = env.step(action)
         #note that we don't have access to external reward here
 
         state = next_state
         done = terminated or truncated
     discriminator_loss, policy_loss = agent.update()
-    discriminator_losses.append(discriminator_loss)
-    policy_losses.append(policy_loss)
+    discriminator_losses.append(discriminator_loss.detach().item())
+    policy_losses.append(policy_loss.detach().item())
 
 
 plt.plot(discriminator_losses)  
-plt.plot(policy_losses)
-plt.show()
+plt.savefig("discriminator_losses.png")
+plt.clf()
 
+plt.plot(policy_losses)
+plt.savefig("policy_losses.png")
+
+agent.save_state_dict()
 
