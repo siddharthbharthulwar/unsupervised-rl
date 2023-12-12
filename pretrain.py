@@ -8,12 +8,12 @@ from torch.distributions.normal import Normal
 from diayn import DIAYN
 import gymnasium as gym
 
-ENV = "HalfCheetah-v4"
+ENV = "BipedalWalker-v3"
 
 #hyperparameters: total # of skills, 
 
-EPOCHS = 12000
-NUM_SKILLS = 14
+EPOCHS = 2000
+NUM_SKILLS = 8
 
 def sample_z():
     return np.random.randint(NUM_SKILLS)
@@ -47,24 +47,6 @@ max_path_return = -1 * np.inf
 num_episodes = 0
 obs_space_dims = env.observation_space.shape[0]
 action_space_dims = env.action_space.shape[0]
-
-# for epoch in EPOCHS:
-
-#     path_length_list = []
-#     z = sample_z()
-    
-#     done = False
-#     aug_obs = None
-#     while not done:
-
-#         action = get_action(aug_obs)
-
-#         obs, reward, terminated, truncated, info = env.step(action)
-#         aug_next_obs = None #todo: concatenate skill and next ob
-#         done = terminated or truncated
-
-#         if done:
-#             path_length_list.append()
 
 '''
 agent.train pseudocode:
@@ -114,11 +96,11 @@ for epoch in range(EPOCHS):
 
 
 plt.plot(discriminator_losses)  
-plt.savefig("discriminator_losses.png")
+plt.savefig("diayn_plots/" + ENV + "disc.png")
 plt.clf()
 
 plt.plot(policy_losses)
-plt.savefig("policy_losses.png")
+plt.savefig("diayn_plots/" + ENV + "pol.png")
 
-agent.save_state_dict()
+agent.save_state_dict(ENV)
 

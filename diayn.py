@@ -19,7 +19,7 @@ class Discriminator_Network(nn.Module):
         super().__init__()
 
         #dimensions of each hidden layer
-        hidden_dims = [128, 64, 32]
+        hidden_dims = [16, 16]
 
         #constructing shared net from hidden layer dimensions
         sequential_input = []
@@ -143,6 +143,6 @@ class DIAYN:
 
         return (discriminator_loss, policy_loss)
     
-    def save_state_dict(self):
-        torch.save(self.policy.state_dict(), "state_dicts/DIAYN_policy.pt")
-        torch.save(self.discriminator.state_dict(), "state_dicts/DIAYN_discriminator.pt")
+    def save_state_dict(self, env_name : str):
+        torch.save(self.policy.state_dict(), "state_dicts/" + env_name + "DIAYN.pt")
+        # torch.save(self.discriminator.state_dict(), "state_dicts/DIAYN_discriminator.pt")
