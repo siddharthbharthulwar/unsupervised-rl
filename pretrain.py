@@ -8,12 +8,12 @@ from torch.distributions.normal import Normal
 from diayn import DIAYN
 import gymnasium as gym
 
-ENV = "BipedalWalker-v3"
+ENV = "Hopper-v4"
 
 #hyperparameters: total # of skills, 
 
-EPOCHS = 2000
-NUM_SKILLS = 8
+EPOCHS = 20000
+NUM_SKILLS = 5
 
 def sample_z():
     return np.random.randint(NUM_SKILLS)
@@ -96,10 +96,12 @@ for epoch in range(EPOCHS):
 
 
 plt.plot(discriminator_losses)  
+plt.ylim(-1000, 1000)
 plt.savefig("diayn_plots/" + ENV + "disc.png")
 plt.clf()
 
 plt.plot(policy_losses)
+plt.plot(-1000, 1000)
 plt.savefig("diayn_plots/" + ENV + "pol.png")
 
 agent.save_state_dict(ENV)

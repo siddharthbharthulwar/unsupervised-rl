@@ -19,7 +19,7 @@ class Discriminator_Network(nn.Module):
         super().__init__()
 
         #dimensions of each hidden layer
-        hidden_dims = [16, 16]
+        hidden_dims = [16, 32, 16, 8]
 
         #constructing shared net from hidden layer dimensions
         sequential_input = []
@@ -49,13 +49,13 @@ class DIAYN:
         self.obs_space_dism = obs_space_dims
         self.action_space_dims = action_space_dims
         self.eps = 1e-6  # small number for mathematical stability
-
+        self.learning_rate = 1e-4 # learning rate for optimizer (both discriminator and policy)
 
         self.discriminator = Discriminator_Network(obs_space_dims, num_skills) #discriminator state -> skill
         self.policy = Policy_Network(obs_space_dims + num_skills, action_space_dims) #policy concatenated state and skill -> action
 
-        self.policy_optimizer = torch.optim.Adam(self.policy.parameters(), lr=0.01)
-        self.discriminator_optimizer = torch.optim.Adam(self.discriminator.parameters(), lr=0.01)
+        self.policy_optimizer = torch.optim.Adam(self.policy.parameters(), lr=self.learning_rate)
+        self.discriminator_optimizer = torch.optim.Adam(self.discriminator.parameters(), lr=self.learning_rate)
 
         self.alpha = 0.1 #empirically found to be good in DIAYN
         self.gamma = 0.99 #discount factor

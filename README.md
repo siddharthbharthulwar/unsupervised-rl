@@ -13,6 +13,6 @@ https://arxiv.org/pdf/1903.03698.pdf
 
 TODOs:
 
-- implement DIAYN with reinforce (~ 60% done)
-- make it work first on simple environments (2d grid)
-- extend to mujoco
+- DIAYN works (ish) now, but lots of work to be done
+- maybe incorporate longevity into reward. basically, without any reward function, there is not as much incentive for agent to not die soon due to erratic behavior. see ant environment.
+- 
