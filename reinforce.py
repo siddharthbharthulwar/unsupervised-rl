@@ -72,7 +72,8 @@ class Policy_Network(nn.Module):
         super().__init__()
 
         #dimensions of each hidden layer
-        hidden_dims = [128, 64, 32]
+        # hidden_dims = [128, 64, 32]
+        hidden_dims = [16, 8]
 
         #constructing shared net from hidden layer dimensions
         sequential_input = []
@@ -95,6 +96,9 @@ class Policy_Network(nn.Module):
         self.policy_stddev_net = nn.Sequential(
             nn.Linear(hidden_dims[-1], action_space_dims)
         )
+
+        nn.init.xavier_uniform_(self.policy_mean_net[0].weight)
+        nn.init.xavier_uniform_(self.policy_stddev_net[0].weight)
 
     def forward(self, x: torch.Tensor) -> tuple[torch.Tensor, torch.Tensor]:
         """Conditioned on the observation, returns the mean and standard deviation

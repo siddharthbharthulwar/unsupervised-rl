@@ -19,7 +19,9 @@ class Discriminator_Network(nn.Module):
         super().__init__()
 
         #dimensions of each hidden layer
-        hidden_dims = [512, 64, 32]
+        # hidden_dims = [512, 64, 32]
+        hidden_dims = [16, 8]
+
 
         #constructing shared net from hidden layer dimensions
         sequential_input = []
@@ -33,6 +35,7 @@ class Discriminator_Network(nn.Module):
 
         self.shared_net = nn.Sequential(*sequential_input)
         self.output = nn.Linear(hidden_dims[-1], num_skills)
+        nn.init.xavier_uniform_(self.output.weight)
 
     def forward(self, x : torch.Tensor) -> torch.Tensor:
 
@@ -65,6 +68,7 @@ class DIAYN:
         self.states = []
         self.z = None
         self.probs = []
+        self.entropies = []
 
 
 
@@ -91,11 +95,13 @@ class DIAYN:
         #   mean and standard deviation and sample an action
         distrib = Normal(action_means + self.eps, action_stddevs + self.eps)
         action = distrib.sample()
+        entropy = distrib.entropy().sum(axis=-1)
         prob = distrib.log_prob(action)
 
         action = action.numpy()
 
         self.probs.append(prob)
+        self.entropies.append(entropy)
         self.actions.append(action)
         self.z = skill
         return action
@@ -111,20 +117,31 @@ class DIAYN:
 
 
         #extracting intrinsic reward for each state traversed (also calculating loss for discriminator)
-        for (state, ctrl_cost) in zip(self.states[::-1], self.rewards[::-1]):
+        # for (state, ctrl_cost) in zip(self.states[::-1], self.rewards[::-1]):
+
+        #     logits = self.discriminator(state)
+        #     R = crossentropy(logits.unsqueeze(0), torch.tensor([self.z]))
+        #     R = torch.log(R)
+        #     discriminator_loss += R
+        #     running_g = self.gamma * running_g + ctrl_cost + R
+        #     gs.insert(0, running_g)
+
+        # deltas = torch.tensor(gs)
+
+        for state in self.states[::-1]:
 
             logits = self.discriminator(state)
             R = crossentropy(logits.unsqueeze(0), torch.tensor([self.z]))
             R = torch.log(R)
             discriminator_loss += R
-            running_g = self.gamma * running_g + ctrl_cost + R
+            running_g = self.gamma * running_g + R
             gs.insert(0, running_g)
 
         deltas = torch.tensor(gs)
 
         #calculating loss for policy network
-        for log_prob, delta in zip(self.probs, deltas):
-            policy_loss += log_prob.mean() * delta * (-1)
+        for log_prob, delta, entropy in zip(self.probs, deltas, self.entropies):
+            policy_loss += -1 * (log_prob.mean() * delta + self.alpha * entropy)
 
         # Update the policy network
         self.policy_optimizer.zero_grad()
@@ -140,6 +157,7 @@ class DIAYN:
         self.probs = []
         self.actions = []
         self.states = []
+        self.entropies = []
 
         return (discriminator_loss, policy_loss)
     

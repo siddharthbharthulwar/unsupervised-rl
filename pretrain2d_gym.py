@@ -7,32 +7,26 @@ import torch.nn as nn
 from torch.distributions.normal import Normal
 from diayn import DIAYN
 import gymnasium as gym
-import random
+from gym_envs.twod_nav import TwoDNavEnv
 
-from env2d import Env
-
-ENV = "2dbox"
+ENV = TwoDNavEnv
 
 #hyperparameters: total # of skills, 
 
-EPOCHS = 50000
-NUM_SKILLS = 8
-
-XBOUND = [-100, 100]
-YBOUND = [-100, 100]
-
-seedx = random.uniform(XBOUND[0], XBOUND[1])
-seedy = random.uniform(YBOUND[0], YBOUND[1])
+EPOCHS = 1000
+NUM_SKILLS = 5
 
 def sample_z():
     return np.random.randint(NUM_SKILLS)
 
-env = Env(seedx, seedy, XBOUND, YBOUND)
+#process per each training loop:
+
+env = gym.make(ENV)
 last_path_return = 0
 max_path_return = -1 * np.inf
 num_episodes = 0
-obs_space_dims = 2
-action_space_dims = 2
+obs_space_dims = env.observation_space.shape[0]
+action_space_dims = env.action_space.shape[0]
 
 agent = DIAYN(NUM_SKILLS, obs_space_dims, action_space_dims)
 discriminator_losses = []
@@ -43,14 +37,13 @@ for epoch in range(EPOCHS):
     if (epoch % 100 == 0):
         print("Epoch: ", epoch)
     z = sample_z()
-    print(epoch)
     state, info = env.reset()
     #concat state with one-hot action
     done = False
     while not done:
         action = agent.sample_action(state, z)
         next_state, _, terminated, truncated, info = env.step(action)
-        # agent.rewards.append(-info["reward_ctrl"])
+        agent.rewards.append(-info["reward_ctrl"])
 
         state = next_state
         done = terminated or truncated
@@ -60,10 +53,12 @@ for epoch in range(EPOCHS):
 
 
 plt.plot(discriminator_losses)  
+plt.ylim(-1000, 1000)
 plt.savefig("diayn_plots/" + ENV + "disc.png")
 plt.clf()
 
 plt.plot(policy_losses)
+plt.plot(-1000, 1000)
 plt.savefig("diayn_plots/" + ENV + "pol.png")
 
 agent.save_state_dict(ENV)
