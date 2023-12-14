@@ -30,7 +30,7 @@ class Discriminator_Network(nn.Module):
             sequential_input.append(
                 nn.Linear(prev_space, dim)
             )
-            sequential_input.append(nn.Tanh())
+            sequential_input.append(nn.Sigmoid())
             prev_space = dim
 
         self.shared_net = nn.Sequential(*sequential_input)
@@ -70,7 +70,8 @@ class DIAYN:
         self.probs = []
         self.entropies = []
 
-
+        self.correct = 0
+        self.discrim_predicted_debug = []
 
     def sample_action(self, state : np.ndarray, skill : int) -> float:
         """Returns an action, conditioned on the policy and observation.
@@ -82,6 +83,13 @@ class DIAYN:
         Returns:
             action: Action to be performed, or a_t ~ pi_theta (a_t | s_t, z)
         """
+
+        logits = self.discriminator(torch.from_numpy(state))
+        print(torch.argmax(softmax(logits)).item())
+        # if (torch.argmax(softmax(logits)).item() == skill):
+        #     self.correct +=1
+
+        self.discrim_predicted_debug.append(torch.argmax(softmax(logits)).item())
 
         self.states.append(torch.from_numpy(state))
         one_hot = np.zeros(self.num_skills)
@@ -104,6 +112,9 @@ class DIAYN:
         self.entropies.append(entropy)
         self.actions.append(action)
         self.z = skill
+
+        # logits = self.discriminator(state)
+        # print(logits)
         return action
     
     def update(self):
@@ -113,9 +124,6 @@ class DIAYN:
         discriminator_loss = 0
         policy_loss = 0
         crossentropy = nn.CrossEntropyLoss()
-        #TODO: implement w/ broadcasting instead of one-by-one
-
-
         #extracting intrinsic reward for each state traversed (also calculating loss for discriminator)
         # for (state, ctrl_cost) in zip(self.states[::-1], self.rewards[::-1]):
 
@@ -129,10 +137,9 @@ class DIAYN:
         # deltas = torch.tensor(gs)
 
         for state in self.states[::-1]:
-
             logits = self.discriminator(state)
             R = crossentropy(logits.unsqueeze(0), torch.tensor([self.z]))
-            R = torch.log(R)
+            # R = torch.log(R)
             discriminator_loss += R
             running_g = self.gamma * running_g + R
             gs.insert(0, running_g)
@@ -144,6 +151,8 @@ class DIAYN:
         for log_prob, delta, entropy in zip(self.probs, deltas, self.entropies):
             entropies.append(entropy.detach().item())
             policy_loss += -1 * (log_prob.mean() * delta + self.alpha * entropy)
+            # policy_loss += -1 * (self.alpha * entropy)
+            # policy_loss += -1 * (log_prob.mean() * delta)
 
         # Update the policy network
         self.policy_optimizer.zero_grad()
@@ -160,6 +169,7 @@ class DIAYN:
         self.actions = []
         self.states = []
         self.entropies = []
+        self.correct = 0
         return (discriminator_loss, policy_loss, np.mean(entropies))
     
     def save_state_dict(self, env_name : str):

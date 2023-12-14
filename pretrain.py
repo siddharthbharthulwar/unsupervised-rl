@@ -28,16 +28,16 @@ def add_training_run(d_arch, p_arch, env_name, epochs, num_skills):
     file.write(serialized_run)
 
 
-ENV = "2dbox"
+ENV = "HalfCheetah-v4"
 INFO = { #this only matters for box2d env
     "xbounds": [-100, 100],
     "ybounds": [-100, 100]
 } 
-EPOCHS = 20000
+EPOCHS = 100
 NUM_SKILLS = 10
 
-DISCRIMINATOR_ARCH = [8, 8]
-POLICY_ARCH = [8, 8]
+DISCRIMINATOR_ARCH = [32, 32]
+POLICY_ARCH = [32, 32]
 
 envwrapper = EnvWrapper(ENV, INFO)
 env = envwrapper.env
@@ -49,6 +49,7 @@ agent = DIAYN(NUM_SKILLS, envwrapper.obs_space_dims, envwrapper.action_space_dim
 discriminator_losses = []
 policy_losses = []
 entropies = []
+percentage_correct = []
 
 #basic training loop
 for epoch in range(EPOCHS):
@@ -56,6 +57,7 @@ for epoch in range(EPOCHS):
     z = np.random.randint(NUM_SKILLS)
     state, info = env.reset()
     done = False
+    counter = 0
     while not done:
         action = agent.sample_action(state, z)
         next_state, _, terminated, truncated, info = env.step(action)
@@ -63,6 +65,9 @@ for epoch in range(EPOCHS):
 
         state = next_state
         done = terminated or truncated
+        counter +=1
+
+    percentage_correct.append(agent.correct / counter)
     discriminator_loss, policy_loss, entropy = agent.update()
     discriminator_losses.append(discriminator_loss.detach().item())
     policy_losses.append(policy_loss.detach().item())
@@ -81,6 +86,11 @@ plt.clf()
 plt.plot(entropies)
 plt.savefig("diayn_plots/" + ENV + "ent.png")
 np.save("diayn_plots/" + ENV + "ent.npy", entropies)
+
+plt.clf()
+plt.hist(agent.discrim_predicted_debug, bins=NUM_SKILLS)
+plt.savefig("diayn_plots/" + ENV + "hist.png")
+
 
 agent.save_state_dict(ENV)
 add_training_run(DISCRIMINATOR_ARCH, POLICY_ARCH, ENV, EPOCHS, NUM_SKILLS)

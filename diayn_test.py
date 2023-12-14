@@ -12,11 +12,11 @@ from PIL import Image
 
 import gymnasium as gym
 
-NUM_SKILLS = 20
+NUM_SKILLS = 10
 ENV = "HalfCheetah-v4"
 PARAMS_PATH = "state_dicts/" + ENV + "DIAYN.pt"
-DISC_ARCH = [128, 64, 32]
-POL_ARCH = [128, 64, 32]
+DISC_ARCH = [32, 32]
+POL_ARCH = [32, 32]
 
 GIF = False
 
