@@ -61,7 +61,7 @@ from torch.distributions.normal import Normal
 class Policy_Network(nn.Module):
     """Parametrized Policy Network."""
 
-    def __init__(self, obs_space_dims: int, action_space_dims: int):
+    def __init__(self, obs_space_dims: int, action_space_dims: int, hidden_dims : list):
         """Initializes a neural network that estimates the mean and standard deviation
          of a normal distribution from which an action is sampled from.
 
@@ -71,9 +71,7 @@ class Policy_Network(nn.Module):
         """
         super().__init__()
 
-        #dimensions of each hidden layer
-        # hidden_dims = [128, 64, 32]
-        hidden_dims = [16, 8]
+        #dimensions of each hidden layer        # hidden_dims = [8, 8]
 
         #constructing shared net from hidden layer dimensions
         sequential_input = []

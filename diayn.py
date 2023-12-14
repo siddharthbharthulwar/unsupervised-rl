@@ -8,7 +8,7 @@ from reinforce import Policy_Network
 class Discriminator_Network(nn.Module):
     '''Discriminator Network'''
 
-    def __init__(self, obs_space_dims : int, num_skills : int):
+    def __init__(self, obs_space_dims : int, num_skills : int, hidden_dims : list):
         """Initializes a neural network that estimates the probability of a skill given a state
         
         Args:
@@ -20,7 +20,7 @@ class Discriminator_Network(nn.Module):
 
         #dimensions of each hidden layer
         # hidden_dims = [512, 64, 32]
-        hidden_dims = [16, 8]
+        # hidden_dims = [16, 8] #2dbox
 
 
         #constructing shared net from hidden layer dimensions
@@ -46,7 +46,7 @@ class Discriminator_Network(nn.Module):
 class DIAYN:
     '''DIAYN algorithm'''
 
-    def __init__(self, num_skills : int, obs_space_dims : int, action_space_dims : int):
+    def __init__(self, num_skills : int, obs_space_dims : int, action_space_dims : int, disc_dims : list, pol_dims : list):
 
         self.num_skills = num_skills
         self.obs_space_dism = obs_space_dims
@@ -54,13 +54,13 @@ class DIAYN:
         self.eps = 1e-6  # small number for mathematical stability
         self.learning_rate = 1e-4 # learning rate for optimizer (both discriminator and policy)
 
-        self.discriminator = Discriminator_Network(obs_space_dims, num_skills) #discriminator state -> skill
-        self.policy = Policy_Network(obs_space_dims + num_skills, action_space_dims) #policy concatenated state and skill -> action
+        self.discriminator = Discriminator_Network(obs_space_dims, num_skills, disc_dims) #discriminator state -> skill
+        self.policy = Policy_Network(obs_space_dims + num_skills, action_space_dims, pol_dims) #policy concatenated state and skill -> action
 
         self.policy_optimizer = torch.optim.Adam(self.policy.parameters(), lr=self.learning_rate)
         self.discriminator_optimizer = torch.optim.Adam(self.discriminator.parameters(), lr=self.learning_rate)
 
-        self.alpha = 0.1 #empirically found to be good in DIAYN
+        self.alpha = 10 #empirically found to be good in DIAYN
         self.gamma = 0.99 #discount factor
         self.rewards = [] #intrinsic rewards from discriminator
 
@@ -141,6 +141,8 @@ class DIAYN:
 
         #calculating loss for policy network
         for log_prob, delta, entropy in zip(self.probs, deltas, self.entropies):
+            # print("logprobs", log_prob.mean())
+            # print(entropy)
             policy_loss += -1 * (log_prob.mean() * delta + self.alpha * entropy)
 
         # Update the policy network
