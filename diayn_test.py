@@ -12,11 +12,19 @@ from PIL import Image
 
 import gymnasium as gym
 
-NUM_SKILLS = 5
-ENV = "HalfCheetah-v4"
+
+=======
+NUM_SKILLS = 20
+ENV = "HumanoidStandup-v4"
+>>>>>>> e24a022 (humanoidstanduo)
 PARAMS_PATH = "state_dicts/" + ENV + "DIAYN.pt"
 
-env = gym.make(ENV, render_mode="rgb_array")
+GIF = False
+
+if GIF:
+    env = gym.make(ENV, render_mode="rgb_array")
+else:
+    env = gym.make(ENV, render_mode = "human")
 obs_space_dims = env.observation_space.shape[0]
 action_space_dims = env.action_space.shape[0]
 agent = DIAYN(NUM_SKILLS, obs_space_dims, action_space_dims)
@@ -33,7 +41,7 @@ for skill in range(NUM_SKILLS):
     while not done:
         action = agent.sample_action(obs, skill)
         rend = env.render()
-        if rend is not None:
+        if rend is not None and GIF:
             pil_image = Image.fromarray(rend)
             pil_images.append(pil_image)
         obs, reward, terminated, truncated, info = env.step(action)
@@ -42,4 +50,5 @@ for skill in range(NUM_SKILLS):
         counter +=1
 
     print("Skill: ", skill, " with reward: ", np.mean(rewards))
-    pil_images[0].save("figures/" + ENV + "/" + str(skill) + ".gif", save_all=True, append_images=pil_images[1:], duration=100, loop=0)
+    if GIF:
+        pil_images[0].save("figures/" + ENV + "/" + str(skill) + ".gif", save_all=True, append_images=pil_images[1:], duration=100, loop=0)

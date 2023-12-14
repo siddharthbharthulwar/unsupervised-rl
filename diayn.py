@@ -19,7 +19,7 @@ class Discriminator_Network(nn.Module):
         super().__init__()
 
         #dimensions of each hidden layer
-        hidden_dims = [16, 32, 16, 8]
+        hidden_dims = [512, 64, 32]
 
         #constructing shared net from hidden layer dimensions
         sequential_input = []
