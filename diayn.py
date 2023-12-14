@@ -140,9 +140,9 @@ class DIAYN:
         deltas = torch.tensor(gs)
 
         #calculating loss for policy network
+        entropies = []
         for log_prob, delta, entropy in zip(self.probs, deltas, self.entropies):
-            # print("logprobs", log_prob.mean())
-            # print(entropy)
+            entropies.append(entropy.detach().item())
             policy_loss += -1 * (log_prob.mean() * delta + self.alpha * entropy)
 
         # Update the policy network
@@ -160,8 +160,7 @@ class DIAYN:
         self.actions = []
         self.states = []
         self.entropies = []
-
-        return (discriminator_loss, policy_loss)
+        return (discriminator_loss, policy_loss, np.mean(entropies))
     
     def save_state_dict(self, env_name : str):
         torch.save(self.policy.state_dict(), "state_dicts/" + env_name + "DIAYN.pt")

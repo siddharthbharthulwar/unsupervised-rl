@@ -15,6 +15,8 @@ import gymnasium as gym
 NUM_SKILLS = 20
 ENV = "HalfCheetah-v4"
 PARAMS_PATH = "state_dicts/" + ENV + "DIAYN.pt"
+DISC_ARCH = [128, 64, 32]
+POL_ARCH = [128, 64, 32]
 
 GIF = False
 
@@ -24,7 +26,7 @@ else:
     env = gym.make(ENV, render_mode = "human")
 obs_space_dims = env.observation_space.shape[0]
 action_space_dims = env.action_space.shape[0]
-agent = DIAYN(NUM_SKILLS, obs_space_dims, action_space_dims)
+agent = DIAYN(NUM_SKILLS, obs_space_dims, action_space_dims, DISC_ARCH, POL_ARCH)
 agent.policy.load_state_dict(torch.load(PARAMS_PATH))
 
 

@@ -33,11 +33,11 @@ INFO = { #this only matters for box2d env
     "xbounds": [-100, 100],
     "ybounds": [-100, 100]
 } 
-EPOCHS = 20
+EPOCHS = 20000
 NUM_SKILLS = 10
 
-DISCRIMINATOR_ARCH = [16, 8]
-POLICY_ARCH = [16, 8]
+DISCRIMINATOR_ARCH = [8, 8]
+POLICY_ARCH = [8, 8]
 
 envwrapper = EnvWrapper(ENV, INFO)
 env = envwrapper.env
@@ -48,13 +48,13 @@ num_episodes = 0
 agent = DIAYN(NUM_SKILLS, envwrapper.obs_space_dims, envwrapper.action_space_dims, DISCRIMINATOR_ARCH, POLICY_ARCH)
 discriminator_losses = []
 policy_losses = []
+entropies = []
 
 #basic training loop
 for epoch in range(EPOCHS):
     print(epoch)
     z = np.random.randint(NUM_SKILLS)
     state, info = env.reset()
-    #concat state with one-hot action
     done = False
     while not done:
         action = agent.sample_action(state, z)
@@ -63,10 +63,10 @@ for epoch in range(EPOCHS):
 
         state = next_state
         done = terminated or truncated
-    discriminator_loss, policy_loss = agent.update()
+    discriminator_loss, policy_loss, entropy = agent.update()
     discriminator_losses.append(discriminator_loss.detach().item())
     policy_losses.append(policy_loss.detach().item())
-
+    entropies.append(entropy)
 
 plt.plot(discriminator_losses)  
 plt.savefig("diayn_plots/" + ENV + "disc.png")
@@ -76,6 +76,11 @@ plt.clf()
 plt.plot(policy_losses)
 plt.savefig("diayn_plots/" + ENV + "pol.png")
 np.save("diayn_plots/" + ENV + "pol.npy", policy_losses)
+
+plt.clf()
+plt.plot(entropies)
+plt.savefig("diayn_plots/" + ENV + "ent.png")
+np.save("diayn_plots/" + ENV + "ent.npy", entropies)
 
 agent.save_state_dict(ENV)
 add_training_run(DISCRIMINATOR_ARCH, POLICY_ARCH, ENV, EPOCHS, NUM_SKILLS)
