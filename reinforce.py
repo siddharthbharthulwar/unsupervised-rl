@@ -44,6 +44,7 @@ import numpy as np
 import torch
 import torch.nn as nn
 from torch.distributions.normal import Normal
+import torch.nn.functional as F
 
 # Policy Network
 # ~~~~~~~~~~~~~~
@@ -57,11 +58,13 @@ from torch.distributions.normal import Normal
 # The following function estimates a mean and standard deviation of a normal distribution from which an action is sampled. Hence it is expected for the policy to learn
 # appropriate weights to output means and standard deviation based on the current observation.
 
-
 class Policy_Network(nn.Module):
     """Parametrized Policy Network."""
 
     def __init__(self, obs_space_dims: int, action_space_dims: int, hidden_dims : list):
+
+        assert len(hidden_dims) > 0, "hidden_dims must be a non-empty list"
+
         """Initializes a neural network that estimates the mean and standard deviation
          of a normal distribution from which an action is sampled from.
 
@@ -74,29 +77,22 @@ class Policy_Network(nn.Module):
         #dimensions of each hidden layer        # hidden_dims = [8, 8]
 
         #constructing shared net from hidden layer dimensions
-        sequential_input = []
+        self.sequential_input = [None] * len(hidden_dims)
         prev_space = obs_space_dims
-        for dim in hidden_dims:
-            sequential_input.append(
-                nn.Linear(prev_space, dim)
-            )
-            sequential_input.append(nn.Tanh())
+
+        for i, dim in enumerate(hidden_dims):
+            self.sequential_input[i] = nn.Linear(prev_space, dim)
+            nn.init.xavier_uniform_(self.sequential_input[i].weight)
+            self.sequential_input[i].bias.data.fill_(0.01)
             prev_space = dim
 
-        self.shared_net = nn.Sequential(*sequential_input)
+        self.mu = nn.Linear(hidden_dims[-1], action_space_dims)
+        nn.init.xavier_uniform_(self.mu.weight)
+        self.mu.bias.data.fill_(0.01)
 
-        # Policy Mean specific Linear Layer
-        self.policy_mean_net = nn.Sequential(
-            nn.Linear(hidden_dims[-1], action_space_dims)
-        )
-
-        # Policy Std Dev specific Linear Layer
-        self.policy_stddev_net = nn.Sequential(
-            nn.Linear(hidden_dims[-1], action_space_dims)
-        )
-
-        nn.init.xavier_uniform_(self.policy_mean_net[0].weight)
-        nn.init.xavier_uniform_(self.policy_stddev_net[0].weight)
+        self.log_std = nn.Linear(hidden_dims[-1], action_space_dims)
+        nn.init.xavier_uniform_(self.log_std.weight)
+        self.log_std.bias.data.fill_(0.01) 
 
     def forward(self, x: torch.Tensor) -> tuple[torch.Tensor, torch.Tensor]:
         """Conditioned on the observation, returns the mean and standard deviation
@@ -109,14 +105,15 @@ class Policy_Network(nn.Module):
             action_means: predicted mean of the normal distribution
             action_stddevs: predicted standard deviation of the normal distribution
         """
-        shared_features = self.shared_net(x.float())
 
-        action_means = self.policy_mean_net(shared_features)
-        action_stddevs = torch.log(
-            1 + torch.exp(self.policy_stddev_net(shared_features))
-        )
+        x = F.relu(self.sequential_input[0](x.float()))
+        for net in self.sequential_input[1:]:
+            x = F.relu(net(x))
 
-        return action_means, action_stddevs
+        action_means = self.mu(x)
+        action_stddevs = self.log_std(x)
+        std = action_stddevs.clamp(-20, 2).exp()
+        return action_means, std
 
 
 # Building an agent

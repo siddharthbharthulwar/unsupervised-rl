@@ -14,23 +14,29 @@ from env2d import Env
 
 import gymnasium as gym
 
-NUM_SKILLS = 10
+NUM_SKILLS = 5
 ENV = "2dbox"
 PARAMS_PATH = "state_dicts/" + ENV + "DIAYN.pt"
 
+DISCRIMINATOR_ARCH = [32, 32]
+POLICY_ARCH = [32, 32]
+
 GIF = False
 
-XBOUND = [-1010, 1010]
-YBOUND = [-1010, 1010]
+XBOUND = [-100, 100]
+YBOUND = [-100, 100]
 
-seedx = random.uniform(XBOUND[0], XBOUND[1])
-seedy = random.uniform(YBOUND[0], YBOUND[1])
+# seedx = random.uniform(XBOUND[0], XBOUND[1])
+# seedy = random.uniform(YBOUND[0], YBOUND[1])
+
+seedx = 0
+seedy = 0
 
 
 env = Env(seedx, seedy, XBOUND, YBOUND)
 obs_space_dims = 2
 action_space_dims = 2
-agent = DIAYN(NUM_SKILLS, obs_space_dims, action_space_dims, [8, 8], [8, 8])
+agent = DIAYN(NUM_SKILLS, obs_space_dims, action_space_dims, DISCRIMINATOR_ARCH, POLICY_ARCH)
 agent.policy.load_state_dict(torch.load(PARAMS_PATH))
 
 

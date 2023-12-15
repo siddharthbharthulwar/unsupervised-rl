@@ -1,11 +1,4 @@
 import numpy as np
-import random
-
-def f(x):
-
-    #cast a variable with range [0, 1] to one wiht range [-1, 1]
-
-    return 2 * x - 1
 
 class Env:
 
@@ -22,7 +15,7 @@ class Env:
         self.xpaths = []
         self.ypaths = []
 
-        self.TRUNCATE = 100
+        self.TRUNCATE = 1000
 
     def reset(self):
         self.xpos = self.seedx
@@ -39,8 +32,8 @@ class Env:
         if self.steps >= self.TRUNCATE:
             return np.array([self.xpos, self.ypos]), 0, True, True, {}
 
-        self.xpos += f(action[0])
-        self.ypos += f(action[1])
+        self.xpos += action[0]
+        self.ypos += action[1]
 
         if self.xpos < self.xbounds[0]:
 

@@ -30,7 +30,7 @@ class Discriminator_Network(nn.Module):
             sequential_input.append(
                 nn.Linear(prev_space, dim)
             )
-            sequential_input.append(nn.Sigmoid())
+            sequential_input.append(nn.ReLU())
             prev_space = dim
 
         self.shared_net = nn.Sequential(*sequential_input)
@@ -60,7 +60,7 @@ class DIAYN:
         self.policy_optimizer = torch.optim.Adam(self.policy.parameters(), lr=self.learning_rate)
         self.discriminator_optimizer = torch.optim.Adam(self.discriminator.parameters(), lr=self.learning_rate)
 
-        self.alpha = 10 #empirically found to be good in DIAYN
+        self.alpha = 1 #empirically found to be good in DIAYN
         self.gamma = 0.99 #discount factor
         self.rewards = [] #intrinsic rewards from discriminator
 
@@ -85,10 +85,6 @@ class DIAYN:
         """
 
         logits = self.discriminator(torch.from_numpy(state))
-        print(torch.argmax(softmax(logits)).item())
-        # if (torch.argmax(softmax(logits)).item() == skill):
-        #     self.correct +=1
-
         self.discrim_predicted_debug.append(torch.argmax(softmax(logits)).item())
 
         self.states.append(torch.from_numpy(state))
@@ -98,12 +94,12 @@ class DIAYN:
         state = np.concatenate((state, one_hot))
         state = torch.from_numpy(state).float()
         action_means, action_stddevs = self.policy(state)
-
         # create a normal distribution from the predicted
         #   mean and standard deviation and sample an action
         distrib = Normal(action_means + self.eps, action_stddevs + self.eps)
         action = distrib.sample()
-        entropy = distrib.entropy().sum(axis=-1)
+        entropy = distrib.entropy()
+        entropy = entropy.sum(axis=-1)
         prob = distrib.log_prob(action)
 
         action = action.numpy()
@@ -139,29 +135,30 @@ class DIAYN:
         for state in self.states[::-1]:
             logits = self.discriminator(state)
             R = crossentropy(logits.unsqueeze(0), torch.tensor([self.z]))
-            # R = torch.log(R)
             discriminator_loss += R
             running_g = self.gamma * running_g + R
             gs.insert(0, running_g)
 
         deltas = torch.tensor(gs)
 
-        #calculating loss for policy network
+        #calculating loss for policy networkå
         entropies = []
         for log_prob, delta, entropy in zip(self.probs, deltas, self.entropies):
             entropies.append(entropy.detach().item())
-            policy_loss += -1 * (log_prob.mean() * delta + self.alpha * entropy)
-            # policy_loss += -1 * (self.alpha * entropy)
+            # policy_loss += -1 * (self.alpha * entropy + log_prob.mean() * delta)
             # policy_loss += -1 * (log_prob.mean() * delta)
+            policy_loss += -1 * (self.alpha * entropy)
 
         # Update the policy network
         self.policy_optimizer.zero_grad()
         policy_loss.backward()
+        nn.utils.clip_grad_norm_(self.policy.parameters(), 1)
         self.policy_optimizer.step()
 
         # Update the discriminator network
         self.discriminator_optimizer.zero_grad()
         discriminator_loss.backward()
+        nn.utils.clip_grad_norm_(self.discriminator.parameters(), 1)
         self.discriminator_optimizer.step()
 
         # Empty / zero out all episode-centric/related variables

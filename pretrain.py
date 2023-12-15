@@ -28,13 +28,13 @@ def add_training_run(d_arch, p_arch, env_name, epochs, num_skills):
     file.write(serialized_run)
 
 
-ENV = "HalfCheetah-v4"
+ENV = "2dbox"
 INFO = { #this only matters for box2d env
     "xbounds": [-100, 100],
     "ybounds": [-100, 100]
 } 
-EPOCHS = 100
-NUM_SKILLS = 10
+EPOCHS = 1000
+NUM_SKILLS = 5
 
 DISCRIMINATOR_ARCH = [32, 32]
 POLICY_ARCH = [32, 32]
@@ -72,6 +72,8 @@ for epoch in range(EPOCHS):
     discriminator_losses.append(discriminator_loss.detach().item())
     policy_losses.append(policy_loss.detach().item())
     entropies.append(entropy)
+
+print(len(agent.discrim_predicted_debug))
 
 plt.plot(discriminator_losses)  
 plt.savefig("diayn_plots/" + ENV + "disc.png")

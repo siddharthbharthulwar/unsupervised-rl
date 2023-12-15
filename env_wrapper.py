@@ -74,7 +74,13 @@ class EnvWrapper:
             xbounds = info["xbounds"]
             ybounds = info["ybounds"]
 
-            self.env = Env(random.uniform(xbounds[0], xbounds[1]), random.uniform(ybounds[0], ybounds[1]), info["xbounds"], info["ybounds"])
+            seedx = random.uniform(xbounds[0], xbounds[1])
+            seedy = random.uniform(ybounds[0], ybounds[1])
+
+            seedx =0
+            seedy = 0
+
+            self.env = Env(seedx, seedy, info["xbounds"], info["ybounds"])
 
             self.obs_space_dims = 2
             self.action_space_dims = 2
