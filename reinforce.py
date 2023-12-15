@@ -65,6 +65,9 @@ class Policy_Network(nn.Module):
 
         assert len(hidden_dims) > 0, "hidden_dims must be a non-empty list"
 
+        self.action_min = -1
+        self.action_max = 1
+
         """Initializes a neural network that estimates the mean and standard deviation
          of a normal distribution from which an action is sampled from.
 
@@ -110,10 +113,9 @@ class Policy_Network(nn.Module):
         for net in self.sequential_input[1:]:
             x = F.relu(net(x))
 
-        action_means = self.mu(x)
-        action_stddevs = self.log_std(x)
-        std = action_stddevs.clamp(-20, 2).exp()
-        return action_means, std
+        action_means = ((self.action_max - self.action_min) * F.tanh(self.mu(x))) / 2 + ((self.action_max + self.action_min) / 2)
+        action_stddevs = F.softplus(self.log_std(x))
+        return action_means, action_stddevs
 
 
 # Building an agent

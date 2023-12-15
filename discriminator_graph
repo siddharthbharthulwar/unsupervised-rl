@@ -1,0 +1,66 @@
+digraph {
+	graph [size="12,12"]
+	node [align=left fontname=monospace fontsize=10 height=0.2 ranksep=0.1 shape=box style=filled]
+	4950019024 [label="
+ (5)" fillcolor=darkolivegreen1]
+	5126863792 [label=ViewBackward0]
+	5126861584 -> 5126863792
+	5126861584 [label=AddmmBackward0]
+	5126861632 -> 5126861584
+	4343371472 [label="output.bias
+ (5)" fillcolor=lightblue]
+	4343371472 -> 5126861632
+	5126861632 [label=AccumulateGrad]
+	5126863360 -> 5126861584
+	5126863360 [label=ViewBackward0]
+	5126894832 -> 5126863360
+	5126894832 [label=ReluBackward0]
+	5126895456 -> 5126894832
+	5126895456 [label=ViewBackward0]
+	5126895552 -> 5126895456
+	5126895552 [label=AddmmBackward0]
+	5126895648 -> 5126895552
+	4942345296 [label="shared_net.2.bias
+ (32)" fillcolor=lightblue]
+	4942345296 -> 5126895648
+	5126895648 [label=AccumulateGrad]
+	5126895600 -> 5126895552
+	5126895600 [label=ViewBackward0]
+	5126895744 -> 5126895600
+	5126895744 [label=ReluBackward0]
+	5126895936 -> 5126895744
+	5126895936 [label=ViewBackward0]
+	5126896032 -> 5126895936
+	5126896032 [label=AddmmBackward0]
+	5126896128 -> 5126896032
+	4941845184 [label="shared_net.0.bias
+ (32)" fillcolor=lightblue]
+	4941845184 -> 5126896128
+	5126896128 [label=AccumulateGrad]
+	5126896080 -> 5126896032
+	5126896080 [label=TBackward0]
+	5126896176 -> 5126896080
+	4948973504 [label="shared_net.0.weight
+ (32, 2)" fillcolor=lightblue]
+	4948973504 -> 5126896176
+	5126896176 [label=AccumulateGrad]
+	5126894928 -> 5126895552
+	5126894928 [label=TBackward0]
+	5126895984 -> 5126894928
+	4945128640 [label="shared_net.2.weight
+ (32, 32)" fillcolor=lightblue]
+	4945128640 -> 5126895984
+	5126895984 [label=AccumulateGrad]
+	5126861488 -> 5126861584
+	5126861488 [label=TBackward0]
+	5126895504 -> 5126861488
+	4343371552 [label="output.weight
+ (5, 32)" fillcolor=lightblue]
+	4343371552 -> 5126895504
+	5126895504 [label=AccumulateGrad]
+	5126863792 -> 4950019024
+	5128290528 [label="
+ (1, 5)" fillcolor=darkolivegreen3]
+	5126861584 -> 5128290528
+	5128290528 -> 4950019024 [style=dotted]
+}

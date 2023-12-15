@@ -15,7 +15,7 @@ class Env:
         self.xpaths = []
         self.ypaths = []
 
-        self.TRUNCATE = 1000
+        self.TRUNCATE = 25
 
     def reset(self):
         self.xpos = self.seedx

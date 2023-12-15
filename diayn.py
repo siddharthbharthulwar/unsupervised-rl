@@ -2,8 +2,9 @@ import numpy as np
 import torch
 import torch.nn as nn
 from torch.distributions.normal import Normal
-from torch.nn.functional import softmax
+import torch.nn.functional as F
 from reinforce import Policy_Network
+from random import random
 
 class Discriminator_Network(nn.Module):
     '''Discriminator Network'''
@@ -22,26 +23,24 @@ class Discriminator_Network(nn.Module):
         # hidden_dims = [512, 64, 32]
         # hidden_dims = [16, 8] #2dbox
 
-
-        #constructing shared net from hidden layer dimensions
-        sequential_input = []
+        self.sequential_input = [None] * len(hidden_dims)
         prev_space = obs_space_dims
-        for dim in hidden_dims:
-            sequential_input.append(
-                nn.Linear(prev_space, dim)
-            )
-            sequential_input.append(nn.ReLU())
+
+        for i, dim in enumerate(hidden_dims):
+            self.sequential_input[i] = nn.Linear(prev_space, dim)
+            nn.init.xavier_uniform_(self.sequential_input[i].weight)
+            self.sequential_input[i].bias.data.fill_(0.01)
             prev_space = dim
 
-        self.shared_net = nn.Sequential(*sequential_input)
         self.output = nn.Linear(hidden_dims[-1], num_skills)
         nn.init.xavier_uniform_(self.output.weight)
 
     def forward(self, x : torch.Tensor) -> torch.Tensor:
 
-        hidden_features = self.shared_net(x.float())
-        output = self.output(hidden_features)
-        return output #don't need to use softmax because CrossEntropyLoss does it for us
+        x = F.relu(self.sequential_input[0](x.float()))
+        for net in self.sequential_input[1:]:
+            x = F.relu(net(x))
+        return self.output(x)
 
 class DIAYN:
     '''DIAYN algorithm'''
@@ -60,7 +59,7 @@ class DIAYN:
         self.policy_optimizer = torch.optim.Adam(self.policy.parameters(), lr=self.learning_rate)
         self.discriminator_optimizer = torch.optim.Adam(self.discriminator.parameters(), lr=self.learning_rate)
 
-        self.alpha = 1 #empirically found to be good in DIAYN
+        self.alpha = 25 #empirically found to be good in DIAYN
         self.gamma = 0.99 #discount factor
         self.rewards = [] #intrinsic rewards from discriminator
 
@@ -72,6 +71,8 @@ class DIAYN:
 
         self.correct = 0
         self.discrim_predicted_debug = []
+        self.action_means_debug = []
+        self.action_stddevs_debug = []
 
     def sample_action(self, state : np.ndarray, skill : int) -> float:
         """Returns an action, conditioned on the policy and observation.
@@ -85,7 +86,7 @@ class DIAYN:
         """
 
         logits = self.discriminator(torch.from_numpy(state))
-        self.discrim_predicted_debug.append(torch.argmax(softmax(logits)).item())
+        self.discrim_predicted_debug.append(torch.argmax(F.softmax(logits)).item())
 
         self.states.append(torch.from_numpy(state))
         one_hot = np.zeros(self.num_skills)
@@ -94,11 +95,25 @@ class DIAYN:
         state = np.concatenate((state, one_hot))
         state = torch.from_numpy(state).float()
         action_means, action_stddevs = self.policy(state)
+        action_stddevs = action_stddevs + self.eps
+        self.action_means_debug.append(action_means.detach().numpy())
+        self.action_stddevs_debug.append(action_stddevs.detach().numpy())
         # create a normal distribution from the predicted
         #   mean and standard deviation and sample an action
         distrib = Normal(action_means + self.eps, action_stddevs + self.eps)
         action = distrib.sample()
-        entropy = distrib.entropy()
+        # print("a1", action_stddevs)
+        # print("a2", action_stddevs **2)
+        e = torch.exp(torch.tensor(1.0))
+        entropy = torch.log(2 * torch.tensor(np.pi) * e * action_stddevs**2 + 1)
+        if (entropy < 0).any():
+            print("entropy:", entropy)
+            print("log entropy", torch.log(entropy))
+
+        # if (entropy < 0).any():
+        #     print("entropy:", entropy)
+        #     print("means:", action_means)
+        #     print("std:", action_stddevs)
         entropy = entropy.sum(axis=-1)
         prob = distrib.log_prob(action)
 
@@ -108,9 +123,6 @@ class DIAYN:
         self.entropies.append(entropy)
         self.actions.append(action)
         self.z = skill
-
-        # logits = self.discriminator(state)
-        # print(logits)
         return action
     
     def update(self):
@@ -145,9 +157,11 @@ class DIAYN:
         entropies = []
         for log_prob, delta, entropy in zip(self.probs, deltas, self.entropies):
             entropies.append(entropy.detach().item())
-            # policy_loss += -1 * (self.alpha * entropy + log_prob.mean() * delta)
-            # policy_loss += -1 * (log_prob.mean() * delta)
-            policy_loss += -1 * (self.alpha * entropy)
+            policy_loss += -1 * (self.alpha * entropy - log_prob.mean() * delta)
+            # if random() < 0.5:
+            #     policy_loss += log_prob.mean() * delta
+            # else:
+            # policy_loss += -1 * (self.alpha * entropy)
 
         # Update the policy network
         self.policy_optimizer.zero_grad()

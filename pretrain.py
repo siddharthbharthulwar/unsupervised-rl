@@ -33,7 +33,7 @@ INFO = { #this only matters for box2d env
     "xbounds": [-100, 100],
     "ybounds": [-100, 100]
 } 
-EPOCHS = 1000
+EPOCHS = 5000
 NUM_SKILLS = 5
 
 DISCRIMINATOR_ARCH = [32, 32]
