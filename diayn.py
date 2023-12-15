@@ -59,7 +59,7 @@ class DIAYN:
         self.policy_optimizer = torch.optim.Adam(self.policy.parameters(), lr=self.learning_rate)
         self.discriminator_optimizer = torch.optim.Adam(self.discriminator.parameters(), lr=self.learning_rate)
 
-        self.alpha = 25 #empirically found to be good in DIAYN
+        self.alpha = 0.15 #empirically found to be good in DIAYN
         self.gamma = 0.99 #discount factor
         self.rewards = [] #intrinsic rewards from discriminator
 

@@ -28,16 +28,16 @@ def add_training_run(d_arch, p_arch, env_name, epochs, num_skills):
     file.write(serialized_run)
 
 
-ENV = "2dbox"
+ENV = "HalfCheetah-v4"
 INFO = { #this only matters for box2d env
     "xbounds": [-100, 100],
     "ybounds": [-100, 100]
 } 
-EPOCHS = 5000
-NUM_SKILLS = 5
+EPOCHS = 40000
+NUM_SKILLS = 15
 
-DISCRIMINATOR_ARCH = [32, 32]
-POLICY_ARCH = [32, 32]
+DISCRIMINATOR_ARCH = [64, 64]
+POLICY_ARCH = [64, 64]
 
 envwrapper = EnvWrapper(ENV, INFO)
 env = envwrapper.env

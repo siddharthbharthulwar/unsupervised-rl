@@ -14,7 +14,7 @@ from env2d import Env
 
 import gymnasium as gym
 
-NUM_SKILLS = 5
+NUM_SKILLS = 15
 ENV = "2dbox"
 PARAMS_PATH = "state_dicts/" + ENV + "DIAYN.pt"
 
